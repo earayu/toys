@@ -1,21 +1,21 @@
 package cn.eovie.socks5.boot;
 
+import cn.eovie.socks5.handler.BrowserHandler;
 import cn.eovie.socks5.handler.Show;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.socks.*;
 import io.netty.handler.codec.socksx.v5.*;
 
 import java.io.UnsupportedEncodingException;
-import java.net.Inet4Address;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,29 +25,42 @@ import java.util.List;
 public class Client {
 
     public static void main(String[] args) {
-        NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
-        Bootstrap b = new Bootstrap();
-        b.group(nioEventLoopGroup)
-                .channel(NioSocketChannel.class)
-                .handler(new ChannelInitializer<SocketChannel>() {
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
-                        socketChannel.pipeline().addFirst(new Show())
-                                .addFirst(Socks5ClientEncoder.DEFAULT);
-                    }
-                });
-        ChannelFuture future = b.connect("127.0.0.1", 1083);
-        future.addListener(new ChannelFutureListener() {
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                Channel channel = channelFuture.channel();
-                channel.writeAndFlush(init());
-                Thread.currentThread().sleep(1000);
-                channel.writeAndFlush(cmd());
-                Thread.currentThread().sleep(1000);
-                channel.writeAndFlush(msg());
-
-            }
-        });
+        NioEventLoopGroup boss = new NioEventLoopGroup();
+        EventLoopGroup worker = new NioEventLoopGroup();
+        try {
+            ServerBootstrap b = new ServerBootstrap();
+            b.group(boss, worker)
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                        protected void initChannel(NioSocketChannel sch) throws Exception {
+                            sch.pipeline()
+//                                    .addFirst(new Show())
+                                    .addLast(new Socks5InitialRequestDecoder())
+                                    .addLast(new BrowserHandler())
+                                    .addLast(Socks5ServerEncoder.DEFAULT);
+                        }
+                    });
+        ChannelFuture future = b.bind("127.0.0.1", 1082);
+            future.channel().closeFuture().sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            boss.shutdownGracefully();
+            worker.shutdownGracefully();
+        }
     }
+//
+//            future.addListener(new ChannelFutureListener() {
+//        public void operationComplete(ChannelFuture channelFuture) throws Exception {
+//            Channel channel = channelFuture.channel();
+//            channel.writeAndFlush(init());
+//            Thread.currentThread().sleep(1000);
+//            channel.writeAndFlush(cmd());
+//            Thread.currentThread().sleep(1000);
+//            channel.writeAndFlush(msg());
+//
+//        }
+//    });
 
     public static Socks5InitialRequest init()
     {

@@ -3,15 +3,15 @@ package cn.eovie.socks5.handler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.socksx.v5.DefaultSocks5CommandResponse;
-import io.netty.handler.codec.socksx.v5.Socks5CommandRequest;
-import io.netty.handler.codec.socksx.v5.Socks5CommandStatus;
+import io.netty.handler.codec.socksx.v5.*;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.Promise;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by earayu on 2017/8/30.
@@ -24,19 +24,24 @@ public class BrowserConnectionHandler extends SimpleChannelInboundHandler<Socks5
                     @Override
                     public void operationComplete(final Future<Channel> future) throws Exception {
                         final Channel outboundChannel = future.getNow();
-                        ChannelFuture responseFuture = context.channel().writeAndFlush(new DefaultSocks5CommandResponse(
-                                Socks5CommandStatus.SUCCESS,
-                                request.dstAddrType(),
-                                request.dstAddr(),
-                                request.dstPort()));
-                        responseFuture.addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture channelFuture) {
-                                context.pipeline().remove(BrowserConnectionHandler.this);
-                                outboundChannel.pipeline().addLast(new RelayHandler(context.channel()));
-                                context.pipeline().addLast(new RelayHandler(outboundChannel));
-                            }
-                        });
+//                        ChannelFuture responseFuture = context.channel().writeAndFlush(new DefaultSocks5CommandResponse(
+//                                Socks5CommandStatus.SUCCESS,
+//                                request.dstAddrType(),
+//                                request.dstAddr(),
+//                                request.dstPort())).sync();
+
+//                        responseFuture.addListener(new ChannelFutureListener() {
+//                            @Override
+//                            public void operationComplete(ChannelFuture channelFuture) {
+//                                context.pipeline().remove(BrowserConnectionHandler.this);
+////                                outboundChannel.pipeline().addLast(new RelayHandler(context.channel()));
+//                                context.pipeline().addLast(new RelayHandler(outboundChannel));
+//                            }
+//                        });
+
+                        outboundChannel.pipeline().addLast(new ServerConnectionHandler(outboundChannel, context.channel()));
+
+
                     }
                 }
         );
@@ -48,7 +53,7 @@ public class BrowserConnectionHandler extends SimpleChannelInboundHandler<Socks5
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .handler(new DirectClientHandler(promise));
 
-        b.connect(request.dstAddr(), request.dstPort()).addListener(new ChannelFutureListener() {
+        b.connect("127.0.0.1", 1083).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(final ChannelFuture future) throws Exception {
                 if (future.isSuccess()) {

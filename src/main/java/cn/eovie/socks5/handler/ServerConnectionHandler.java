@@ -45,6 +45,8 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
     }
 
 
+
+
     private void sendSocks5CmdMsg() throws InterruptedException {
         DefaultSocks5CommandRequest request1 = new DefaultSocks5CommandRequest(Socks5CommandType.CONNECT, request.dstAddrType(), request.dstAddr(), request.dstPort());
         outboundChannel.writeAndFlush(request1)

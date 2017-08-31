@@ -24,6 +24,7 @@ import io.netty.util.ReferenceCountUtil;
 public final class RelayHandler extends ChannelInboundHandlerAdapter {
 
     private final Channel relayChannel;
+    private boolean dirty = false;
 
     public RelayHandler(Channel relayChannel) {
         this.relayChannel = relayChannel;
@@ -37,10 +38,19 @@ public final class RelayHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (relayChannel.isActive()) {
-            relayChannel.writeAndFlush(msg);
+            relayChannel.write(msg);
+            dirty = true;
         } else {
             ReferenceCountUtil.release(msg);
         }
+    }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        if(dirty) {//有必要吗
+            relayChannel.flush();
+        }
+        ctx.fireChannelReadComplete();
     }
 
     @Override

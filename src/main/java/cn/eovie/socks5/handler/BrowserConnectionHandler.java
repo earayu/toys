@@ -24,24 +24,7 @@ public class BrowserConnectionHandler extends SimpleChannelInboundHandler<Socks5
                     @Override
                     public void operationComplete(final Future<Channel> future) throws Exception {
                         final Channel outboundChannel = future.getNow();
-//                        ChannelFuture responseFuture = context.channel().writeAndFlush(new DefaultSocks5CommandResponse(
-//                                Socks5CommandStatus.SUCCESS,
-//                                request.dstAddrType(),
-//                                request.dstAddr(),
-//                                request.dstPort())).sync();
-
-//                        responseFuture.addListener(new ChannelFutureListener() {
-//                            @Override
-//                            public void operationComplete(ChannelFuture channelFuture) {
-//                                context.pipeline().remove(BrowserConnectionHandler.this);
-////                                outboundChannel.pipeline().addLast(new RelayHandler(context.channel()));
-//                                context.pipeline().addLast(new RelayHandler(outboundChannel));
-//                            }
-//                        });
-
-                        outboundChannel.pipeline().addLast(new ServerConnectionHandler(outboundChannel, context.channel()));
-
-
+                        outboundChannel.pipeline().addLast(new ServerConnectionHandler(outboundChannel, context.channel(), request));
                     }
                 }
         );

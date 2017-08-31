@@ -14,11 +14,13 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
     private Channel outboundChannel;
     private Channel browserChannel;
+    private Socks5CommandRequest request;
 
-    public ServerConnectionHandler(Channel outboundChannel,Channel browserChannel)
+    public ServerConnectionHandler(Channel outboundChannel,Channel browserChannel, Socks5CommandRequest request)
     {
         this.outboundChannel = outboundChannel;
         this.browserChannel = browserChannel;
+        this.request = request;
         sendConnectRemoteMessage0();
     }
 
@@ -33,7 +35,7 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
             browserChannel.pipeline().addLast(new RelayHandler(outboundChannel));
             browserChannel.writeAndFlush(new DefaultSocks5CommandResponse(
                     Socks5CommandStatus.SUCCESS,
-                    Socks5AddressType.IPv4, "127.0.0.1", 1444)).sync();
+                    Socks5AddressType.IPv4, "127.0.0.1", 1444));
         }else {
             sendConnectRemoteMessage();
             outboundChannel.pipeline().addFirst(new Socks5CommandResponseDecoder());
@@ -43,8 +45,8 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
 
 
     private void sendConnectRemoteMessage() throws InterruptedException {
-        DefaultSocks5CommandRequest request1 = new DefaultSocks5CommandRequest(Socks5CommandType.CONNECT, Socks5AddressType.IPv4, "127.0.0.1", 1444);
-        outboundChannel.writeAndFlush(request1).sync().addListener(new ChannelFutureListener() {
+        DefaultSocks5CommandRequest request1 = new DefaultSocks5CommandRequest(Socks5CommandType.CONNECT, request.dstAddrType(), request.dstAddr(), request.dstPort());
+        outboundChannel.writeAndFlush(request1).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
 

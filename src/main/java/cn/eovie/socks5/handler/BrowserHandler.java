@@ -16,6 +16,7 @@ public class BrowserHandler extends SimpleChannelInboundHandler<Socks5Message> {
         {
             context.channel().writeAndFlush(new DefaultSocks5InitialResponse(Socks5AuthMethod.NO_AUTH));
             context.pipeline().addFirst(new Socks5CommandRequestDecoder());
+            context.pipeline().remove(Socks5InitialRequestDecoder.class);
         }else if(socks5Message instanceof Socks5CommandRequest){
             Socks5CommandRequest socks5CommandRequest = (Socks5CommandRequest) socks5Message;
             if(socks5CommandRequest.type()==Socks5CommandType.CONNECT) {

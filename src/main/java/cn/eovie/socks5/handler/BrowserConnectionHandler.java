@@ -40,8 +40,6 @@ public class BrowserConnectionHandler extends SimpleChannelInboundHandler<Socks5
             @Override
             public void operationComplete(final ChannelFuture future) throws Exception {
                 if (future.isSuccess()) {
-
-
                 } else {
                     context.channel().writeAndFlush(
                             new DefaultSocks5CommandResponse(Socks5CommandStatus.FAILURE, request.dstAddrType()));

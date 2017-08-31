@@ -25,20 +25,19 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
     }
 
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if(msg instanceof Socks5CommandResponse)
+        if(msg instanceof Socks5InitialResponse){
+            sendConnectRemoteMessage();
+            outboundChannel.pipeline().addFirst(new Socks5CommandResponseDecoder());
+        }else if(msg instanceof Socks5CommandResponse)
         {
             outboundChannel.pipeline().remove(Socks5ClientEncoder.class);
             outboundChannel.pipeline().remove(ServerConnectionHandler.class);
-            outboundChannel.pipeline().addLast(new RelayHandler(browserChannel));
             outboundChannel.pipeline().remove(Socks5CommandResponseDecoder.class);
+            outboundChannel.pipeline().addLast(new RelayHandler(browserChannel));
+            browserChannel.pipeline().remove(Socks5CommandRequestDecoder.class);
             browserChannel.pipeline().remove(BrowserConnectionHandler.class);
             browserChannel.pipeline().addLast(new RelayHandler(outboundChannel));
-            browserChannel.writeAndFlush(new DefaultSocks5CommandResponse(
-                    Socks5CommandStatus.SUCCESS,
-                    Socks5AddressType.IPv4, "127.0.0.1", 1444));
-        }else {
-            sendConnectRemoteMessage();
-            outboundChannel.pipeline().addFirst(new Socks5CommandResponseDecoder());
+            browserChannel.writeAndFlush(new DefaultSocks5CommandResponse(Socks5CommandStatus.SUCCESS, request.dstAddrType(), request.dstAddr(), request.dstPort()));
         }
     }
 
@@ -49,8 +48,7 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
         outboundChannel.writeAndFlush(request1).addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture channelFuture) throws Exception {
-
-
+                outboundChannel.pipeline().remove(Socks5InitialResponseDecoder.class);
             }
         });
     }
@@ -59,11 +57,12 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
         List<Socks5AuthMethod> authMethodList = new ArrayList<Socks5AuthMethod>();
         authMethodList.add(Socks5AuthMethod.NO_AUTH);
         outboundChannel.pipeline().addLast(Socks5ClientEncoder.DEFAULT);
-        try {
-            outboundChannel.writeAndFlush(new DefaultSocks5InitialRequest(authMethodList)).sync();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        outboundChannel.writeAndFlush(new DefaultSocks5InitialRequest(authMethodList)).addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                outboundChannel.pipeline().addFirst(new Socks5InitialResponseDecoder());
+            }
+        });
     }
 
 }

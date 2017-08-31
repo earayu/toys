@@ -1,0 +1,12 @@
+
+
+socks5:
+  remote_server:
+    addr: 127.0.0.1
+    port: 1083
+    timeout: 100000
+    keepalive: true
+
+  local_server:
+    addr: 127.0.0.1
+    port: 1082

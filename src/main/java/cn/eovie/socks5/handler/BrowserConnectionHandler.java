@@ -25,7 +25,7 @@ public class BrowserConnectionHandler extends SimpleChannelInboundHandler<Socks5
     }
 
     protected void channelRead0(final ChannelHandlerContext context, final Socks5CommandRequest request) throws Exception {
-
+        
         Bootstrap b = new Bootstrap();
         b.group(context.channel().eventLoop())
                 .channel(NioSocketChannel.class)

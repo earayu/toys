@@ -3,6 +3,7 @@ package cn.eovie.socks5.handler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.compression.*;
 import io.netty.handler.codec.socksx.v5.*;
 
 import java.util.ArrayList;
@@ -35,12 +36,18 @@ public class ServerConnectionHandler extends ChannelInboundHandlerAdapter {
             outboundChannel.pipeline().remove(Socks5ClientEncoder.class);
             outboundChannel.pipeline().remove(ServerConnectionHandler.class);
             outboundChannel.pipeline().remove(Socks5CommandResponseDecoder.class);
+//            outboundChannel.pipeline().addLast(new Show());
+            outboundChannel.pipeline().addLast(new JdkZlibDecoder());
             outboundChannel.pipeline().addLast(new RelayHandler(browserChannel));
             browserChannel.pipeline().remove(Socks5CommandRequestDecoder.class);
             browserChannel.pipeline().remove(BrowserConnectionHandler.class);
+//            browserChannel.pipeline().addLast(new JdkZlibDecoder());
             browserChannel.pipeline().addLast(new RelayHandler(outboundChannel));
             browserChannel.writeAndFlush(new DefaultSocks5CommandResponse(Socks5CommandStatus.SUCCESS, request.dstAddrType(), request.dstAddr(), request.dstPort()))
-                    .addListener(channelFuture -> browserChannel.pipeline().remove(Socks5ServerEncoder.class));
+                    .addListener(channelFuture ->
+                    {
+                        browserChannel.pipeline().remove(Socks5ServerEncoder.class);
+                    });
         }
     }
 
